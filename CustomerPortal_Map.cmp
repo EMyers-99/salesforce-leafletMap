@@ -1,0 +1,108 @@
+<!--
+  @description       : 
+  @author            : Ethan Myers
+  @group             : 
+  @last modified on  : 02-25-2023
+  @last modified by  : Ethan Myers
+-->
+<aura:component controller="CustomerPortal_Cont">
+
+    <aura:attribute name="account" type="Account" />
+    <aura:attribute name="user" type="Portal_User_Registration__c" />
+
+    <!--WELL SEARCHBAR ATTRIBUTES -->
+    <aura:attribute name="statusOptions" type="List" default="[
+            {
+                label: '--All--',
+                value: 'All'
+            },
+            {
+                label: 'Passed',
+                value: 'Passed'
+            },
+            {
+                label: 'Failed',
+                value: 'Failed'
+            },
+            {
+                label: 'Needs Attention',
+                value: ''
+            }
+        ]" />
+    <aura:attribute name="selectedStatus" type="String" default="All" />
+    <aura:attribute name="searchedWell" type="String" default="" />
+    <aura:attribute name="relativeWells" type="Wells__c[]" />
+
+    <!-- GLOBAL ATTRIBUTE STORING MAP OBJECT REFERENCE -->
+    <aura:attribute name="mapLoaded" type="Boolean" default="false" />
+    <aura:attribute name="mapRef" type="Object" />
+    <aura:attribute name="clusterRef" type="Object" />
+    <!-- GLOBAL ATTRIBUTE TO STORE LIST OF WELLS FOR MAP -->
+    <aura:attribute name="wellList" type="Wells__c[]" />
+
+    <!--MAP RESOURCES-->
+    <ltng:require
+        styles="{!join(',', $Resource.leaflet + '/leaflet.css', $Resource.MarkerCluster_CSS, $Resource.MarkerDefaultDefault_CSS)}" />
+    <ltng:require scripts="{!join(',', $Resource.leaflet + '/leaflet.js', $Resource.MarkerCluster_JS)}"
+        afterScriptsLoaded="{!c.init}" />
+
+    <!-- NAV EVENT -->
+    <aura:dependency resource="markup://c:navInspection" type="EVENT" />
+    <aura:registerEvent name="navInspection" type="c:navInspection" />
+
+    <aura:if isTrue="{!v.mapLoaded == false}">
+        <lightning:spinner alternativeText="Loading" size="large" />
+    </aura:if>
+
+    <div class="map-wrap">
+        <div class="mapSidebar" style="height: 500px; float: left; width: 25%;">
+            <lightning:card title="Wells">
+                <aura:set attribute="actions">
+                    <lightning:combobox options="{!v.statusOptions}" value="{!v.selectedStatus}"
+                        onchange="{!c.updateStatus}" label="Status" />
+                </aura:set>
+                <!-- CARD BODY -->
+                <!-- SEARCH BAR -->
+                <div class="searchBar">
+                    <div onkeyup="{! c.handleKeyUp }">
+                        <lightning:input value="{!v.searchedWell}" aura:id="enter-search" name="enter-search"
+                            id="enter-search" isLoading="{! v.issearching }" type="search" variant="label-hidden"
+                            placeholder="Search for Wells by Name" />
+                    </div>
+                </div>
+                <div>
+                    <ul class="slds-has-dividers_bottom-space filteredWells">
+                        <aura:iteration items="{!v.relativeWells}" var="well">
+                            <li class="slds-item">
+                                <div id="{!well.Id}" aura:id="{!well.Id}" class="assetTile" onclick="{!c.viewDetails}">
+                                    <lightning:tile label="{!well.Name}" href="#">
+                                        <aura:set attribute="media">
+                                            <lightning:icon iconName="custom:custom32"></lightning:icon>
+                                        </aura:set>
+                                        <ul class="slds-list_horizontal slds-has-dividers_right">
+                                            <li class="slds-item">{!well.City__c + ', ' + well.State__c}</li>
+                                            <li class="slds-item">
+                                                <span
+                                                    class="{!IF(well.Status__c == 'Passed', 'slds-badge slds-theme_success', IF(well.Status__c == 'Failed', 'slds-badge slds-theme_error', 'slds-badge slds-theme_warning'))}">
+                                                    {!IF(well.Status__c == 'Passed', 'Passed', IF(well.Status__c ==
+                                                    'Failed', 'Failed', 'Needs Attention'))}
+                                                </span>
+                                            </li>
+                                        </ul>
+                                    </lightning:tile>
+                                </div>
+                            </li>
+                        </aura:iteration>
+                    </ul>
+                </div>
+                <aura:set attribute="footer">
+                    <div style="display:none">
+
+                    </div>
+                </aura:set>
+            </lightning:card>
+        </div>
+        <div class="map" id="map" aura:id="map" style="height:500px; width: 75%; float: right; border-radius: 5px;">
+        </div>
+    </div>
+</aura:component>
